@@ -1,7 +1,8 @@
 #include <Servo.h> 
 
+// Enum used 
 enum mode {
-  MODE_ONE_gauge,
+  MODE_ONE_GAUGE,
   MODE_TWO_TIMER
 };
 
@@ -12,13 +13,13 @@ int BUTTON = 0;
 int PHOTOTRANSISTOR = A0;
 Servo servo;
 
+mode currentMode; // This variable keeps track of what mode the light gauge is in
+long startMillis;   // Stores the starting time in ms of the timer for Mode 2
+long lastServoUpdateMillis;  // Stores the last time in ms that the servo was update for Mode 2
+bool countingDown;  // Remembers if time is counting down or not for Mode 2
 
-mode currentMode;
-long startMillis;
-long lastServoUpdateMillis;
-bool countingDown;
 
-
+// Sets up/initializes the variables and pins
 void setup() {
   Serial.begin(9600);  
   servo.attach(7);
@@ -32,7 +33,7 @@ void setup() {
   
   blinkLEDs(3);
 
-  currentMode = MODE_ONE_gauge;
+  currentMode = MODE_ONE_GAUGE;
 
   Serial.println("Setup Complete.");
 }
@@ -45,12 +46,12 @@ void loop() {
    
    Serial.print("currentMode = ");
   
-  // Logic for Light gauge Mode
-  if(currentMode == MODE_ONE_gauge){
-    Serial.println(MODE_ONE_gauge);
+  // Logic for Light Gauge Mode
+  if(currentMode == MODE_ONE_GAUGE){
+    Serial.println(MODE_ONE_GAUGE);
     lightgaugeLogic();
 
-    
+  // Logic for Light Timer Mode
   } else if(currentMode == MODE_TWO_TIMER){
     Serial.println(MODE_TWO_TIMER);
     lightTimerLogic();
@@ -63,7 +64,9 @@ void loop() {
 
 // ----- Logic Functions -----
 
+// This function contains all of the logic for the light gauge (Mode 1)
 void lightgaugeLogic(){
+  
   // First time setup is run in the gaugeModeFirstTimeSetup() function
   
   int lightVal = analogRead(A0);
@@ -76,8 +79,9 @@ void lightgaugeLogic(){
   servo.write(angleVal);
 }
 
-
+// This function contains all of the logic for the light timer (Mode 2)
 void lightTimerLogic(){
+  
   // First time setup is run in the timerModeFirstTimeSetup() function
   
   int lightVal = analogRead(A0);
@@ -87,11 +91,13 @@ void lightTimerLogic(){
 
   // Initialize values and start countdown
   if(lightVal > 100 && !countingDown){
+    
     startMillis = millis();
     lastServoUpdateMillis = millis();
     countingDown = true;
 
   } else if (lightVal > 100 && countingDown){
+    
     // Convert the amount of time that has passed into an angle for the servo
     int currentServoAngle = 180 - (180 * (millis() - startMillis)/30000);
     Serial.print("Current servo angle = ");
@@ -116,9 +122,7 @@ void lightTimerLogic(){
     digitalWrite(RED_LED, LOW);
     digitalWrite(GREEN_LED, HIGH);
     servo.write(180);
-  }
-  
-
+  } 
 }
 
 // ----- First Time Setup Functions -----
@@ -143,18 +147,21 @@ void checkButtonClick(){
   if(digitalRead(BUTTON) == HIGH){
     
     while(digitalRead(BUTTON) == HIGH){
-      // Waiting for button release then toggle the mode
+      // Waiting for button release
     }
-    if(currentMode == MODE_ONE_gauge){
+    // Toggles to the other mode and runs first time setup
+    if(currentMode == MODE_ONE_GAUGE){
       currentMode = MODE_TWO_TIMER;
       timerModeFirstTimeSetup();
+      
     } else {
-      currentMode = MODE_ONE_gauge;
+      currentMode = MODE_ONE_GAUGE;
       gaugeModeFirstTimeSetup();
     }
   }
 }
 
+// This method takes in an int and blinks the LEDs that many times
 void blinkLEDs(int numBlinks){
   for(int i = 0; i < numBlinks; i++){
     delay(500);
