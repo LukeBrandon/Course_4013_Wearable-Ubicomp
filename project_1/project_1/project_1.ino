@@ -16,6 +16,8 @@ Servo servo;
 mode currentMode; // This variable keeps track of what mode the light gauge is in
 long startMillis;   // Stores the starting time in ms of the timer for Mode 2
 long lastServoUpdateMillis;  // Stores the last time in ms that the servo was update for Mode 2
+long lastDebounceTime = 0;  // the last time the output pin was toggled
+long debounceDelay = 50;    // the debounce time; increase if the output flickers
 bool countingDown;  // Remembers if time is counting down or not for Mode 2
 
 
@@ -144,19 +146,28 @@ void timerModeFirstTimeSetup(){
 
 // Toggles between modes
 void checkButtonClick(){
+
   if(digitalRead(BUTTON) == HIGH){
     
     while(digitalRead(BUTTON) == HIGH){
       // Waiting for button release
     }
-    // Toggles to the other mode and runs first time setup
-    if(currentMode == MODE_ONE_GAUGE){
-      currentMode = MODE_TWO_TIMER;
-      timerModeFirstTimeSetup();
-      
-    } else {
-      currentMode = MODE_ONE_GAUGE;
-      gaugeModeFirstTimeSetup();
+    
+    // Filter out any noise by setting a time buffer
+    // This debouncing logic was taken from https://www.arduino.cc/en/Tutorial/BuiltInExamples/Debounce
+    if ( (millis() - lastDebounceTime) > debounceDelay) {
+  
+      // Toggles to the other mode and runs first time setup
+      if(currentMode == MODE_ONE_GAUGE){
+        currentMode = MODE_TWO_TIMER;
+        timerModeFirstTimeSetup();
+        lastDebounceTime = millis();
+        
+      } else {
+        currentMode = MODE_ONE_GAUGE;
+        gaugeModeFirstTimeSetup();
+        lastDebounceTime = millis();
+      }
     }
   }
 }
