@@ -23,11 +23,11 @@ bool countingDown;  // Remembers if time is counting down or not for Mode 2
 
 // Sets up/initializes the variables and pins
 void setup() {
-  Serial.begin(9600);  
+  Serial.begin(115200);  
   servo.attach(7);
   servo.write(0);
   
-  pinMode(RED_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT); 
   pinMode(GREEN_LED, OUTPUT);
   pinMode(BUTTON, INPUT);
   pinMode(A0, INPUT);
