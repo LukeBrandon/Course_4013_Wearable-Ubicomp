@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/home/luke/.arduino15/packages/arduino/tools/**",
+                "/home/luke/.arduino15/packages/arduino/hardware/samd/1.8.9/**",
+                "/home/luke/ArduinoClient/arduino-1.8.13/libraries/**"
+            ],
+            "forcedInclude": [
+                "/home/luke/.arduino15/packages/arduino/hardware/samd/1.8.9/cores/arduino/Arduino.h"
+            ],
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu18",
+            "cppStandard": "gnu++14"
+        }
+    ],
+    "version": 4
+}

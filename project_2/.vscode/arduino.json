@@ -1,0 +1,4 @@
+{
+    "programmer": "AVR ISP",
+    "board": "arduino:samd:mkr1000"
+}
