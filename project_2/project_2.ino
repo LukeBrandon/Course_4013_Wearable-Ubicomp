@@ -43,8 +43,7 @@ void setup() {
   servo.attach(SERVO_PIN);
   servo.write(0);
   lcd.begin(16, 2);
-  //lcd.print(brokenMessage);
-  lcdDisplayMessage("This is a two two two\nline test for the booiiis");
+  lcdDisplayMessage("BROKEN");
   
   resetAnglesArray();
   
@@ -153,6 +152,7 @@ void lcdDisplayMessage(String message) {
   lcd.setCursor(0,0);
 
   for(int i = 0; i < message.length(); i++){
+    // Autoscrolling
     if(lengthOnCurrentLine == 15){
       lcd.autoscroll();
     }
