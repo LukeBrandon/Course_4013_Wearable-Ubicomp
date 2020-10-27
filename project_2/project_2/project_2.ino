@@ -6,7 +6,7 @@
 
 Servo servo;
 LiquidCrystal lcd(0, 1, 5, 4, 3, 2);
-char* brokenMessage = "BROKEN";
+char* testMessage = "TESTING...";
 
 //-------------------------------------
 WiFiClient wifiClient;
@@ -18,6 +18,7 @@ long int lastWifiAttempt = 0;
 PubSubClient mqttClient(wifiClient);
 char* username = "lhbrando";
 char* mqtt_server = "broker.hivemq.com";
+//char* mqtt_server = "broker.mqttdashboarmmd.com";
 char* topic_lcd = "uark/csce5013/lhbrando/lcd";
 char* topic_phrase = "uark/csce5013/lhbrando/phrase";
 char* topic_angles = "uark/csce5013/lhbrando/angles";
@@ -43,8 +44,7 @@ void setup() {
   servo.attach(SERVO_PIN);
   servo.write(0);
   lcd.begin(16, 2);
-  //lcd.print(brokenMessage);
-  lcdDisplayMessage("This is a two two two\nline test for the booiiis");
+  lcd.print(testMessage);
   
   resetAnglesArray();
   
@@ -108,7 +108,6 @@ void messageReceivedCallback(char* topic, byte* message, unsigned int length) {
   Serial.print(topic);
   Serial.print(". Message: ");
   String messageTemp;
-  char messageTempCharArray[length];
 
   // Read the message into messageTemp
   for (int i = 0; i < length; i++) {
@@ -146,31 +145,9 @@ void lcdDisplayMessage(String message) {
   Serial.print("Printing \"");
   Serial.print(message);
   Serial.println("\" to LCD");
-  bool secondLine = false;
-  int lengthOnCurrentLine = 0;
-
   lcd.clear();
   lcd.setCursor(0,0);
-
-  for(int i = 0; i < message.length(); i++){
-    if(lengthOnCurrentLine == 15){
-      lcd.autoscroll();
-    }
-    
-    if(message.charAt(i) == '\n'){
-      lcd.home();
-      lcd.setCursor(0,1);
-      lcd.noAutoscroll();
-      lengthOnCurrentLine = 0;
-      continue;
-    }
-  
-    Serial.print(message[i]);
-    lcd.print(message[i]);
-    lengthOnCurrentLine++;
-
-    delay(100);
-  }
+  lcd.print(message);
 }
 
 // This method is responsible for handling the moving of the servo (Pathfinder) when a message is received
@@ -205,6 +182,7 @@ void hexToAscii(){
   
   for(int i=0; i < angles_array_size; i+=2){
     if(angles[i]!= -1){ 
+      Serial.print(",");
       Serial.print(angles[i]);
       Serial.print(",");
       Serial.print(angles[i+1]);
@@ -214,8 +192,8 @@ void hexToAscii(){
       secondHex = 0;
       decimalVal = 0;
         
-      firstHex = angles[i]/SERVO_ANGLE_MULT;
-      secondHex = angles[i+1]/SERVO_ANGLE_MULT;
+      firstHex = angles[i]/12;
+      secondHex = angles[i+1]/12;
 
       // Interpret the hex values into an ASCII decimal value
       decimalVal = (firstHex * 16) + (secondHex);
