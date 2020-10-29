@@ -6,45 +6,40 @@
 
 Servo servo;
 LiquidCrystal lcd(0, 1, 5, 4, 3, 2);
-char* testMessage = "TESTING...";
+const int SERVO_PIN = 9;
+const int SERVO_ANGLE_MULT = 12;
 
 //-------------------------------------
 WiFiClient wifiClient;
 int status = WL_IDLE_STATUS;
-char* ssid = "ThePromisedLan2.4G";
-char* password ="sucksformoses";
-long int lastWifiAttempt = 0;
+char* ssid = "WIFI--SSID";
+char* password ="WIFI--PASSWORD";
 
 PubSubClient mqttClient(wifiClient);
 char* username = "lhbrando";
 char* mqtt_server = "broker.hivemq.com";
-//char* mqtt_server = "broker.mqttdashboarmmd.com";
 char* topic_lcd = "uark/csce5013/lhbrando/lcd";
 char* topic_phrase = "uark/csce5013/lhbrando/phrase";
 char* topic_angles = "uark/csce5013/lhbrando/angles";
 char* init_communication_message = "HELLO";
-//------------------------------
+char* brokenMessage = "BROKEN";
 
-const int SERVO_PIN = 9;
-const int SERVO_ANGLE_MULT = 12;
-long timeSinceUpdated = 0;
+//------------------------------
 
 int const angles_array_size = 36;
 int angles[angles_array_size];
-String decodedMessage = "";
 
-// Initializes all the things
+//String decodedMessage = "";
+
+// Initializes all the things (servo, lcd, wifi, and mqtt client)
 void setup() {
   delay(1000);
   Serial.begin(9600);
-  while(!Serial){
-    //do nothing
-  }
 
   servo.attach(SERVO_PIN);
   servo.write(0);
   lcd.begin(16, 2);
-  lcd.print(testMessage);
+  lcdDisplayMessage(brokenMessage);
   
   resetAnglesArray();
   
@@ -67,7 +62,7 @@ void reconnect() {
 
   while (!mqttClient.connected()) {
 
-    Serial.print("Attempting MQTT connection...");
+    Serial.println("Attempting MQTT connection...");
 
     // Attempt to connect
     if (mqttClient.connect(username)) {
@@ -103,21 +98,26 @@ void loop() {
   delay(100);
 }
 
+// This callback was configured to be invoked whenever a message is received from the MQTT broker
 void messageReceivedCallback(char* topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
   Serial.print(". Message: ");
   String messageTemp;
+  char messageTempCharArray[length];
 
   // Read the message into messageTemp
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
-  Serial.println();
+  Serial.println("");
 
   // Determine what to do with the message
   if (String(topic) == topic_phrase) {
+    if(messageTemp.equals(init_communication_message)){
+        lcdDisplayMessage(brokenMessage);
+    } 
     
     // Got the secret phrase
   } else if (String(topic) == topic_angles) {
@@ -125,16 +125,17 @@ void messageReceivedCallback(char* topic, byte* message, unsigned int length) {
     // Decode the angles
     decodeAngles(messageTemp);
     displayHex();
-    hexToAscii();
+    //hexToAscii();
 
-    // Convert the decoded message into a char array
-    char phrase[decodedMessage.length()+1];
-    decodedMessage.toCharArray(phrase, decodedMessage.length()+1);
+    // Convert the decoded message into a char array and send back automatically
+    //char phrase[decodedMessage.length()+1];
+    //decodedMessage.toCharArray(phrase, decodedMessage.length()+1);
     
-    publishPhrase(phrase);
+    //publishPhrase(phrase);
   } else if (String(topic) == topic_lcd) {
-    
+   
     lcdDisplayMessage(messageTemp);
+    
   } else {
     Serial.println("Whoops! I received a message from a topic that I am not supposed to be subscribed to.");
   }
@@ -145,9 +146,32 @@ void lcdDisplayMessage(String message) {
   Serial.print("Printing \"");
   Serial.print(message);
   Serial.println("\" to LCD");
+  int lengthOnCurrentLine = 0;
+
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(message);
+
+  for(int i = 0; i < message.length(); i++){
+    // Autoscrolling when approacting end of line
+    if(lengthOnCurrentLine == 15){
+      lcd.autoscroll();
+    }
+
+    // Goes to next line when seeing new line character
+    if(message.charAt(i) == '\n'){
+      lcd.home();
+      lcd.setCursor(0,1);
+      lcd.noAutoscroll();
+      lengthOnCurrentLine = 0;
+      continue;
+    }
+  
+    Serial.print(message[i]);
+    lcd.print(message[i]);
+    lengthOnCurrentLine++;
+
+    delay(100);
+  }
 }
 
 // This method is responsible for handling the moving of the servo (Pathfinder) when a message is received
@@ -170,41 +194,6 @@ void displayHex() {
     delay(500);
   }
 }
-
-// This function uses the angles that were went from broker and converted to ascii
-void hexToAscii(){
-  // Each ascii character is made up of 2 hex values
-  // We get these hex values by dividing the angle by 12 (16 evenly spaced over 180 degrees)  
-  decodedMessage = "";
-  int firstHex;
-  int secondHex;
-  int decimalVal;
-  
-  for(int i=0; i < angles_array_size; i+=2){
-    if(angles[i]!= -1){ 
-      Serial.print(",");
-      Serial.print(angles[i]);
-      Serial.print(",");
-      Serial.print(angles[i+1]);
-       
-      //reset values
-      firstHex = 0;
-      secondHex = 0;
-      decimalVal = 0;
-        
-      firstHex = angles[i]/12;
-      secondHex = angles[i+1]/12;
-
-      // Interpret the hex values into an ASCII decimal value
-      decimalVal = (firstHex * 16) + (secondHex);
-        
-      decodedMessage.concat(char(decimalVal));
-      Serial.println(decodedMessage);  
-    }  
-  }
-  
-  Serial.println("Finished decoding message");
-} 
 
 // Helper function for decoding the comma separated angles sent from server into an array of integers
 void decodeAngles(String message) {
@@ -264,3 +253,37 @@ void resetAnglesArray() {
     angles[i] = -1;
   }
 }
+
+// This function uses the angles that were went from broker and converted to ascii
+//void hexToAscii(){
+//  // Each ascii character is made up of 2 hex values
+//  // We get these hex values by dividing the angle by 12 (16 evenly spaced over 180 degrees)  
+//  decodedMessage = "";
+//  int firstHex;
+//  int secondHex;
+//  int decimalVal;
+//  
+//  for(int i=0; i < angles_array_size; i+=2){
+//    if(angles[i]!= -1){ 
+//      Serial.print(angles[i]);
+//      Serial.print(",");
+//      Serial.print(angles[i+1]);
+//       
+//      //reset values
+//      firstHex = 0;
+//      secondHex = 0;
+//      decimalVal = 0;
+//        
+//      firstHex = angles[i]/SERVO_ANGLE_MULT;
+//      secondHex = angles[i+1]/SERVO_ANGLE_MULT;
+//
+//      // Interpret the hex values into an ASCII decimal value
+//      decimalVal = (firstHex * 16) + (secondHex);
+//        
+//      decodedMessage.concat(char(decimalVal));
+//      Serial.println(decodedMessage);  
+//    }  
+//  }
+//  
+//  Serial.println("Finished decoding message");
+//} 
